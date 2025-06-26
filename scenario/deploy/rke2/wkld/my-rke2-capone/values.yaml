@@ -1,0 +1,92 @@
+cluster:
+  capi_providers:
+    infra_provider: capone
+    bootstrap_provider: cabpr
+
+  capone:
+    public_network: service
+
+    master_template: capone-rke2-wkld-master
+    worker_template: capone-rke2-wkld-worker
+
+    images:
+      - imageName: capone-rke2-wkld-node
+        imageContent: |
+          PATH = "https://d24fmfybwxpuhu.cloudfront.net/ubuntu2204-7.0.0-0-20250528.qcow2"
+          DEV_PREFIX = "vd"
+
+    templates:
+      - templateName: capone-rke2-wkld-master
+        templateContent: |
+          CONTEXT = [
+            NETWORK = "YES",
+            SET_HOSTNAME = "$NAME",
+            SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
+            TOKEN = "YES" ]
+          CPU = "1"
+          CPU_MODEL = [
+            MODEL = "host-passthrough" ]
+          DISK = [
+            IMAGE = "capone-rke2-wkld-node",
+            SIZE = "65536" ]
+          GRAPHICS = [
+            LISTEN = "0.0.0.0",
+            TYPE = "vnc" ]
+          HYPERVISOR = "kvm"
+          LXD_SECURITY_PRIVILEGED = "true"
+          MEMORY = "12288"
+          OS = [
+            ARCH = "x86_64",
+            FIRMWARE_SECURE = "YES" ]
+          SCHED_REQUIREMENTS = "HYPERVISOR=kvm"
+          VCPU = "8"
+          SCHED_ACTION = [
+            ACTION = "undeploy",
+            ID     = "0",
+            TIME   = "+7200" ]
+          SCHED_ACTION = [
+            ACTION = "terminate",
+            ID     = "1",
+            TIME   = "+57600" ]
+      - templateName: capone-rke2-wkld-worker
+        templateContent: |
+          CONTEXT = [
+            NETWORK = "YES",
+            SET_HOSTNAME = "$NAME",
+            SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
+            TOKEN = "YES" ]
+          CPU = "1"
+          CPU_MODEL = [
+            MODEL = "host-passthrough" ]
+          DISK = [
+            IMAGE = "capone-rke2-wkld-node",
+            SIZE = "65536" ]
+          GRAPHICS = [
+            LISTEN = "0.0.0.0",
+            TYPE = "vnc" ]
+          HYPERVISOR = "kvm"
+          LXD_SECURITY_PRIVILEGED = "true"
+          MEMORY = "6144"
+          OS = [
+            ARCH = "x86_64",
+            FIRMWARE_SECURE = "YES" ]
+          SCHED_REQUIREMENTS = "HYPERVISOR=kvm"
+          VCPU = "4"
+          SCHED_ACTION = [
+            ACTION = "undeploy",
+            ID     = "0",
+            TIME   = "+7200" ]
+          SCHED_ACTION = [
+            ACTION = "terminate",
+            ID     = "1",
+            TIME   = "+57600" ]
+
+  control_plane_replicas: 1
+
+  machine_deployments:
+    md0:
+      replicas: 2
+
+cluster_virtual_ip: 172.20.86.11
+
+display_external_ip: 172.20.86.10

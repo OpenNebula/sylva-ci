@@ -1,0 +1,7 @@
+endpoint = "http://10.0.1.9:2633/RPC2"
+username = "oneadmin"
+password = "opennebula"
+
+HYDRA_USER      = "oneadmin"
+HYDRA_PASSWORD  = "opennebula"
+HYDRA_FLAKE_URL = "https://github.com/OpenNebula/sylva-ci.git"

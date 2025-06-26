@@ -1,0 +1,95 @@
+---
+cluster:
+  k8s_version: v1.31.4
+
+  capi_providers:
+    infra_provider: capone
+    bootstrap_provider: cabpk
+
+  capone:
+    public_network: service
+
+    master_template: capone-kubeadm-wkld-master
+    worker_template: capone-kubeadm-wkld-worker
+
+    images:
+      - imageName: capone-kubeadm-wkld-node
+        imageContent: |
+          PATH = "https://d24fmfybwxpuhu.cloudfront.net/capone-6.10.0-3-20250205.qcow2"
+          DEV_PREFIX = "vd"
+
+    templates:
+      - templateName: capone-kubeadm-wkld-master
+        templateContent: |
+          CONTEXT = [
+            NETWORK = "YES",
+            SET_HOSTNAME = "$NAME",
+            SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
+            TOKEN = "YES" ]
+          CPU = "1"
+          CPU_MODEL = [
+            MODEL = "host-passthrough" ]
+          DISK = [
+            IMAGE = "capone-kubeadm-wkld-node",
+            SIZE = "65536" ]
+          GRAPHICS = [
+            LISTEN = "0.0.0.0",
+            TYPE = "vnc" ]
+          HYPERVISOR = "kvm"
+          LXD_SECURITY_PRIVILEGED = "true"
+          MEMORY = "12288"
+          OS = [
+            ARCH = "x86_64",
+            FIRMWARE_SECURE = "YES" ]
+          SCHED_REQUIREMENTS = "HYPERVISOR=kvm"
+          VCPU = "8"
+          SCHED_ACTION = [
+            ACTION = "undeploy",
+            ID     = "0",
+            TIME   = "+7200" ]
+          SCHED_ACTION = [
+            ACTION = "terminate",
+            ID     = "1",
+            TIME   = "+57600" ]
+      - templateName: capone-kubeadm-wkld-worker
+        templateContent: |
+          CONTEXT = [
+            NETWORK = "YES",
+            SET_HOSTNAME = "$NAME",
+            SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
+            TOKEN = "YES" ]
+          CPU = "1"
+          CPU_MODEL = [
+            MODEL = "host-passthrough" ]
+          DISK = [
+            IMAGE = "capone-kubeadm-wkld-node",
+            SIZE = "65536" ]
+          GRAPHICS = [
+            LISTEN = "0.0.0.0",
+            TYPE = "vnc" ]
+          HYPERVISOR = "kvm"
+          LXD_SECURITY_PRIVILEGED = "true"
+          MEMORY = "6144"
+          OS = [
+            ARCH = "x86_64",
+            FIRMWARE_SECURE = "YES" ]
+          SCHED_REQUIREMENTS = "HYPERVISOR=kvm"
+          VCPU = "4"
+          SCHED_ACTION = [
+            ACTION = "undeploy",
+            ID     = "0",
+            TIME   = "+7200" ]
+          SCHED_ACTION = [
+            ACTION = "terminate",
+            ID     = "1",
+            TIME   = "+57600" ]
+
+  control_plane_replicas: 1
+
+  machine_deployments:
+    md0:
+      replicas: 2
+
+cluster_virtual_ip: 172.20.86.21
+
+display_external_ip: 172.20.86.20
