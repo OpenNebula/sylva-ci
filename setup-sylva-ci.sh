@@ -9,27 +9,11 @@ set -eu -o pipefail
 source <(isoinfo -i "$CONTEXT_PATH" -R -x /context.sh)
 
 : "${HYDRA_HOST:=http://$ETH0_IP:3000}"
-: "${HYDRA_PROJECT_ID:=sylva-ci}"
 : "${HYDRA_USER:=$1}"
 : "${HYDRA_PASSWORD:=$2}"
 : "${HYDRA_FLAKE_URL:=$3}"
-
-install -o 122 -g 122 -m u=rwx,go=rx -d /var/tmp/sylva-ci/
-install -o 122 -g 122 -m u=rw,go=r /dev/fd/0 /var/tmp/sylva-ci/flake.nix <<NIX
-{
-  inputs = {
-    entropy = {
-      url = "file+file:///dev/null";
-      flake = false;
-    };
-    sylva-ci = {
-      url = "git+$HYDRA_FLAKE_URL";
-      inputs.entropy.follows = "entropy";
-    };
-  };
-  outputs = { sylva-ci, ... }: { inherit (sylva-ci) packages checks; };
-}
-NIX
+: "${SYLVA_BASE:=/opt/sylva-ci}"
+: "${SYLVA_JOBS:=deploy-kubeadm deploy-rke2}"
 
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/01-hostname.nix <<NIX
 { ... }: { networking.hostName = "$SET_HOSTNAME"; }
@@ -58,6 +42,29 @@ NIX
 
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/03-hydra.nix <<NIX
 { pkgs, ... }: {
+  nixpkgs.overlays = [
+    (final: prev: {
+      hydra = prev.hydra.overrideAttrs (old:
+        let
+          hydra-qm-patch = pkgs.writeText "hydra-qm.patch" ''
+            diff --git a/src/hydra-queue-runner/queue-monitor.cc b/src/hydra-queue-runner/queue-monitor.cc
+            index 0785be6f..9c304a22 100644
+            --- a/src/hydra-queue-runner/queue-monitor.cc
+            +++ b/src/hydra-queue-runner/queue-monitor.cc
+            @@ -57,7 +57,7 @@ void State::queueMonitorLoop(Connection & conn)
+                     /* Sleep until we get notification from the database about an
+                        event. */
+                     if (done && !quit) {
+            -            conn.await_notification();
+            +            conn.await_notification(2*60, 0);
+                         nrQueueWakeups++;
+                     } else
+                         conn.get_notifs();
+          '';
+        in { patches = (old.patches or []) ++ [hydra-qm-patch]; }
+      );
+    })
+  ];
   nix = {
     settings = {
       experimental-features = "nix-command flakes";
@@ -106,11 +113,13 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/04-timer
       serviceConfig = {
         Type = "oneshot";
         User = "122";
-        WorkingDirectory = "/var/tmp/sylva-ci/";
+        WorkingDirectory = "$SYLVA_BASE";
       };
       path = with pkgs; [ coreutils git nix ];
       script = ''
-        nix flake update --override-input entropy file+file://<(date --utc)
+        for JOB in $SYLVA_JOBS; do
+          (cd "\$JOB/" && nix flake update --override-input entropy file+file://<(date --utc))
+        done
       '';
     };
   };
@@ -134,6 +143,44 @@ while ! curl -fsSL -H 'Accept: application/json' "$HYDRA_HOST/"; do
     sleep 5
 done
 
+for JOB in $SYLVA_JOBS; do install -o 122 -g 122 -m u=rwx,go=rx -d "$SYLVA_BASE/$JOB/"; done
+for JOB in $SYLVA_JOBS; do install -o 122 -g 122 -m u=rw,go=r /dev/fd/0 "$SYLVA_BASE/$JOB/flake.nix" <<NIX
+{
+  inputs = {
+    entropy = {
+      url = "file+file:///dev/null";
+      flake = false;
+    };
+    sylva-ci = {
+      url = "git+$HYDRA_FLAKE_URL";
+      inputs.entropy.follows = "entropy";
+    };
+  };
+  outputs = { sylva-ci, ... }: {
+    checks.x86_64-linux.sylva-ci-$JOB = sylva-ci.checks.x86_64-linux.sylva-ci-$JOB;
+  };
+}
+NIX
+done
+
+for JOB in $SYLVA_JOBS; do cat <<JSON
+{
+  "sylva-ci-$JOB": {
+    "enabled": 1,
+    "hidden": false,
+    "description": "sylva-ci-$JOB",
+    "flake": "path:$SYLVA_BASE/$JOB",
+    "checkinterval": 30,
+    "schedulingshares": 100,
+    "enableemail": false,
+    "emailoverride": "",
+    "keepnr": 1,
+    "type": 1
+  }
+}
+JSON
+done | jq -rs add | install -o 122 -g 122 -m u=rw,go=r /dev/fd/0 "$SYLVA_BASE/spec.json"
+
 read -r -d "#\n" LOGIN_JSON <<JSON
 {
   "username": "$HYDRA_USER",
@@ -143,13 +190,13 @@ JSON
 
 read -r -d "#\n" PROJECT_JSON <<JSON
 {
-  "displayname": "$HYDRA_PROJECT_ID",
+  "displayname": "sylva-ci",
   "enabled": true,
   "hidden": false,
   "declarative": {
-    "type": "git",
+    "type": "path",
     "file": "spec.json",
-    "value": "$HYDRA_FLAKE_URL"
+    "value": "$SYLVA_BASE"
   }
 }#
 JSON
@@ -161,7 +208,7 @@ curl --fail-early --show-error \
 --json "$LOGIN_JSON" \
 -: \
 --silent \
--X PUT --referer "$HYDRA_HOST/login" "$HYDRA_HOST/project/$HYDRA_PROJECT_ID" \
+-X PUT --referer "$HYDRA_HOST/login" "$HYDRA_HOST/project/sylva-ci" \
 --cookie ~/hydra-session \
 --json "$PROJECT_JSON"
 

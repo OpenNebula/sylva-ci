@@ -9,7 +9,7 @@
     let
       pkgs = import nixpkgs { system = "x86_64-linux"; };
       addCheck = { name, sylva-core, scenario, ... }: pkgs.testers.runNixOSTest {
-        name = "${name}-test";
+        name = name;
         nodes = {
           m1 = { pkgs, ... }: {
             nix.settings.sandbox = false;
