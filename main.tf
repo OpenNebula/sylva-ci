@@ -35,6 +35,13 @@ variable "HYDRA_FLAKE_URL" {
   default = "https://github.com/OpenNebula/sylva-ci.git"
 }
 
+variable "GITLAB_PROJECT" {
+  type = string
+}
+variable "GITLAB_TOKEN" {
+  type = string
+}
+
 resource "random_id" "sylva-ci" {
   byte_length = 4
 }
@@ -62,16 +69,19 @@ locals {
         {
           path        = "/var/tmp/setup-sylva-ci.sh"
           owner       = "root:root"
-          permissions = "u=rwx,go=rx"
+          permissions = "644"
           encoding    = "b64"
           content     = base64encode(file("${path.module}/setup-sylva-ci.sh"))
+        }, {
+          path        = "/var/tmp/report-sylva-ci.rb"
+          owner       = "root:root"
+          permissions = "644"
+          encoding    = "b64"
+          content     = base64encode(file("${path.module}/report-sylva-ci.rb"))
         },
       ]
       runcmd = [[
         "/run/current-system/sw/bin/bash", "--login", "/var/tmp/setup-sylva-ci.sh",
-        var.HYDRA_USER,
-        var.HYDRA_PASSWORD,
-        var.HYDRA_FLAKE_URL,
       ]]
     }
   }
@@ -86,12 +96,20 @@ resource "opennebula_virtual_machine" "sylva-ci" {
   memory      = 24 * 1024
 
   context = {
-    SET_HOSTNAME       = "sylva-ci"
-    NETWORK            = "YES"
-    TOKEN              = "YES"
-    SSH_PUBLIC_KEY     = "$USER[SSH_PUBLIC_KEY]"
+    SET_HOSTNAME   = "sylva-ci"
+    NETWORK        = "YES"
+    TOKEN          = "YES"
+    SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]"
+
     USER_DATA_ENCODING = "base64"
     USER_DATA          = base64encode(join("\n", ["#cloud-config", yamlencode(local.user_data[each.key])]))
+
+    HYDRA_USER      = var.HYDRA_USER
+    HYDRA_PASSWORD  = var.HYDRA_PASSWORD
+    HYDRA_FLAKE_URL = var.HYDRA_FLAKE_URL
+
+    GITLAB_PROJECT = var.GITLAB_PROJECT
+    GITLAB_TOKEN   = var.GITLAB_TOKEN
   }
 
   os {

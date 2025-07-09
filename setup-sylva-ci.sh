@@ -2,16 +2,19 @@
 
 ((!DETACHED)) && DETACHED=1 exec setsid --fork "$SHELL" "$0" "$@"
 
-set -eu -o pipefail
+set -e -o pipefail
 
 : "${CONTEXT_PATH:=/dev/sr0}"
 
 source <(isoinfo -i "$CONTEXT_PATH" -R -x /context.sh)
 
-: "${HYDRA_HOST:=http://$ETH0_IP:3000}"
 : "${HYDRA_USER:=$1}"
 : "${HYDRA_PASSWORD:=$2}"
 : "${HYDRA_FLAKE_URL:=$3}"
+
+set -u
+
+: "${HYDRA_HOST:=http://$ETH0_IP:3000}"
 : "${SYLVA_BASE:=/opt/sylva-ci}"
 : "${SYLVA_JOBS:=deploy-kubeadm deploy-rke2}"
 
@@ -85,7 +88,7 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/03-hydra
     };
   };
   environment.systemPackages = with pkgs; [
-    libargon2
+    libargon2 ruby
   ];
   services.hydra = {
     enable = true;
@@ -120,6 +123,24 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/04-timer
         for JOB in $SYLVA_JOBS; do
           (cd "\$JOB/" && nix flake update --override-input entropy file+file://<(date --utc))
         done
+      '';
+    };
+    timers."report-sylva-ci" = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "Tue..Sat 03:00";
+        Unit = "report-sylva-ci.service";
+      };
+    };
+    services."report-sylva-ci" = {
+      serviceConfig = {
+        Type = "oneshot";
+      };
+      path = with pkgs; [ cdrkit ruby ];
+      script = ''
+        set -a
+        source <(isoinfo -i "$CONTEXT_PATH" -R -x /context.sh)
+        ruby /var/tmp/report-sylva-ci.rb
       '';
     };
   };

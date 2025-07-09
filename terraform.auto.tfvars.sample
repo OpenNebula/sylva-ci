@@ -5,3 +5,6 @@ password = "opennebula"
 HYDRA_USER      = "oneadmin"
 HYDRA_PASSWORD  = "opennebula"
 HYDRA_FLAKE_URL = "https://github.com/OpenNebula/sylva-ci.git"
+
+GITLAB_PROJECT = "123456"
+GITLAB_TOKEN   = "glpat-qwertyuio-p-asdfghjk"
