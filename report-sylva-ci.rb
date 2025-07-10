@@ -128,10 +128,11 @@ def to_status(finished, buildstatus)
     return %[❌]
 end
 
-results = by_job.each_with_object({}) do |(j, bb), acc|
-    acc[j] = bb.take(5).to_h do |b|
-      [to_date(b['timestamp']), to_status(b['finished'], b['buildstatus'])]
+results = by_job.to_h do |j, bb|
+    status_by_date = bb.each_with_object({}) do |b, acc|
+        acc[to_date(b['timestamp'])] ||= to_status(b['finished'], b['buildstatus'])
     end
+    [j, status_by_date]
 end.then do |rr|
     jobs = rr.keys
              .sort
