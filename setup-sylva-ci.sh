@@ -45,29 +45,6 @@ NIX
 
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/03-hydra.nix <<NIX
 { pkgs, ... }: {
-  nixpkgs.overlays = [
-    (final: prev: {
-      hydra = prev.hydra.overrideAttrs (old:
-        let
-          hydra-qm-patch = pkgs.writeText "hydra-qm.patch" ''
-            diff --git a/src/hydra-queue-runner/queue-monitor.cc b/src/hydra-queue-runner/queue-monitor.cc
-            index 0785be6f..9c304a22 100644
-            --- a/src/hydra-queue-runner/queue-monitor.cc
-            +++ b/src/hydra-queue-runner/queue-monitor.cc
-            @@ -57,7 +57,7 @@ void State::queueMonitorLoop(Connection & conn)
-                     /* Sleep until we get notification from the database about an
-                        event. */
-                     if (done && !quit) {
-            -            conn.await_notification();
-            +            conn.await_notification(2*60, 0);
-                         nrQueueWakeups++;
-                     } else
-                         conn.get_notifs();
-          '';
-        in { patches = (old.patches or []) ++ [hydra-qm-patch]; }
-      );
-    })
-  ];
   nix = {
     settings = {
       experimental-features = "nix-command flakes";
@@ -107,7 +84,7 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/04-timer
       after = [ "hydra-evaluator.service" ];
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "Mon..Fri 23:00";
+        OnCalendar = "Mon..Fri 01:00 CET";
         Unit = "touch-sylva-ci.service";
       };
     };
@@ -125,10 +102,28 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/04-timer
         done
       '';
     };
+    timers."restart-hydra-queue-runner" = {
+      after = [ "hydra-queue-runner.service" ];
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "Mon..Fri 01:05/5 CET";
+        Unit = "restart-hydra-queue-runner.service";
+      };
+    };
+    services."restart-hydra-queue-runner" = {
+      after = [ "hydra-queue-runner.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+      };
+      path = with pkgs; [ systemd ];
+      script = ''
+        systemctl restart hydra-queue-runner.service
+      '';
+    };
     timers."report-sylva-ci" = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "Tue..Sat 03:00";
+        OnCalendar = "Mon..Fri 05:00 CET";
         Unit = "report-sylva-ci.service";
       };
     };
