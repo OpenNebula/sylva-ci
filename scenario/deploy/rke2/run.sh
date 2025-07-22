@@ -16,10 +16,10 @@ tar --mode=u+rw,go+r -cf- -C "$SELF/wkld/" . | tar -xf- -C "$WORK/environment-va
 
 cd "$WORK/"
 
-(./bootstrap.sh ./environment-values/my-rke2-capone)
-
-(./apply-workload-cluster.sh ./environment-values/workload-clusters/my-rke2-capone)
-
-(./apply.sh ./environment-values/my-rke2-capone)
-
-(./apply-workload-cluster.sh ./environment-values/workload-clusters/my-rke2-capone)
+#(./bootstrap.sh ./environment-values/my-rke2-capone)
+#
+#(./apply-workload-cluster.sh ./environment-values/workload-clusters/my-rke2-capone)
+#
+#(./apply.sh ./environment-values/my-rke2-capone)
+#
+#(./apply-workload-cluster.sh ./environment-values/workload-clusters/my-rke2-capone)

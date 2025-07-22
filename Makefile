@@ -16,18 +16,22 @@ apply destroy: TF_LOG ?= INFO
 apply destroy: init
 	terraform $@ --auto-approve
 
-.PHONY: touch check
+.PHONY: run
 
-touch:
-	nix flake update --override-input entropy file+file://<(date --utc)
+run:
+	nix run
+
+.PHONY: check
 
 check:
+	cd $(SELF)/scenario/ && \
 	nix flake check --option sandbox false --print-build-logs
 
 define ADD_TEST =
 .PHONY: test-$(1)
 
 test-$(1):
+	cd $(SELF)/scenario/ && \
 	nix build --option sandbox false --print-build-logs '.#checks.x86_64-linux.sylva-ci-$(1)' --rebuild || \
 	nix build --option sandbox false --print-build-logs '.#checks.x86_64-linux.sylva-ci-$(1)'
 endef
