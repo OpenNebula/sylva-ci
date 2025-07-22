@@ -84,7 +84,7 @@ resource "opennebula_virtual_machine" "sylva-ci" {
   permissions = "642"
   cpu         = "2"
   vcpu        = "4"
-  memory      = 24 * 1024
+  memory      = 8 * 1024
 
   context = {
     SET_HOSTNAME   = "sylva-ci"
@@ -109,7 +109,7 @@ resource "opennebula_virtual_machine" "sylva-ci" {
 
   disk {
     image_id = each.value
-    size     = 256 * 1024
+    size     = 32 * 1024
   }
 
   nic {

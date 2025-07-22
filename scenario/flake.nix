@@ -21,8 +21,8 @@
             networking.useDHCP = false;
             networking.interfaces.eth0.useDHCP = true;
             virtualisation.cores = 2;
-            virtualisation.memorySize = 8 * 1024;
-            virtualisation.diskSize = 64 * 1024;
+            virtualisation.memorySize = 2 * 1024;
+            virtualisation.diskSize = 8 * 1024;
             virtualisation.docker.enable = true;
             virtualisation.docker.logDriver = "local";
           };
