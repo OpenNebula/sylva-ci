@@ -1,76 +1,58 @@
 {
-  inputs = {
-    entropy = {
-      url = "file+file:///dev/null";
-      flake = false;
-    };
-  };
-  outputs = { self, nixpkgs, ... }@inputs:
+  outputs = { self, nixpkgs }:
     let
       pkgs = import nixpkgs { system = "x86_64-linux"; };
-      addCheck = { name, sylva-core, scenario, ... }: pkgs.testers.runNixOSTest {
-        name = name;
-        nodes = {
-          m1 = { pkgs, ... }: {
-            nix.settings.sandbox = false;
-            environment.systemPackages = with pkgs; [
-              bash binutils
-              curl
-              docker
-              envsubst
-              git gnutar gzip
-              (python3.withPackages (python-pkgs: with python-pkgs; [
-                pyyaml
-                yamllint
-              ]))
-            ];
-            networking.useDHCP = false;
-            networking.interfaces.eth0.useDHCP = true;
-            virtualisation.cores = 2;
-            virtualisation.memorySize = 12 * 1024;
-            virtualisation.diskSize = 64 * 1024;
-            virtualisation.docker.enable = true;
-            virtualisation.docker.logDriver = "local";
-          };
-        };
-        testScript = ''
-          m1.wait_for_unit("multi-user.target")
-          m1.wait_for_unit("network-online.target")
-          print(m1.succeed("${scenario}/run.sh ${sylva-core}"))
-        '';
-      };
     in {
-      packages.x86_64-linux = rec {
-        sylva-core = pkgs.stdenv.mkDerivation {
-          name = "sylva-core";
-          git_url = "https://gitlab.com/mopala/sylva-core.git";
-          git_rev = "capone";
-          dontUnpack = true;
-          dontPatch = true;
-          dontConfigure = true;
-          dontBuild = true;
-          dontFixup = false;
-          buildInputs = with pkgs; [ cacert git ];
-          installPhase = ''
-            cat '${inputs.entropy}'
-            git clone -b $git_rev $git_url $out/
-          '';
-          postFixup = ''
-            unlink $out/charts/sylva-units/test-values/use-oci-artifacts/use-oci-artifacts-final.values.yaml
-          '';
+      packages.x86_64-linux = {
+        asynq-tools =
+          let
+            checkout = pkgs.fetchFromGitHub {
+              owner = "hibiken";
+              repo = "asynq";
+              rev = "v0.25.1";
+              hash = "sha256-aUxqVfAs8xfEIQ7LVibU/Ape+mMCQ/eAf2eN2oaho/8=";
+            };
+          in pkgs.buildGoModule {
+            name = "asynq-tools";
+            src = "${checkout}/tools/";
+            vendorHash = "sha256-/7aMFgUL3IT5Gn7K/LQrLAICrmzOMJSBFd8nURPL7rk=";
+          };
+        asynq-ci = pkgs.buildGoModule {
+          name = "asynq-ci";
+          src = ./.;
+          vendorHash = "sha256-xxfZf4LX+C0pdrqME7WX6FeOVy7KgIHzripFwr4yf+Y=";
         };
-        default = sylva-core;
+        default = pkgs.symlinkJoin {
+          name = "sylva-ci";
+          paths = [
+            self.packages.x86_64-linux.asynq-tools
+            self.packages.x86_64-linux.asynq-ci
+          ];
+        };
       };
-      checks.x86_64-linux = {
-        sylva-ci-deploy-kubeadm = addCheck {
-          name = "deploy-kubeadm";
-          sylva-core = self.packages.x86_64-linux.sylva-core;
-          scenario = ./scenario/deploy/kubeadm;
+      apps.x86_64-linux = {
+        default = {
+          type = "app";
+          program = "${self.packages.x86_64-linux.default}/bin/srv";
         };
-        sylva-ci-deploy-rke2 = addCheck {
-          name = "deploy-rke2";
-          sylva-core = self.packages.x86_64-linux.sylva-core;
-          scenario = ./scenario/deploy/rke2;
+      };
+      nixosModules.x86_64-linux = {
+        default = { config, lib, ... }: {
+          options.services.sylva-ci = {
+            enable = lib.mkEnableOption "Enable sylva-ci";
+          };
+          config = lib.mkIf config.services.sylva-ci.enable {
+            systemd.services.sylva-ci = {
+              wantedBy = [ "multi-user.target" ];
+              after = [ "network.target" ];
+              path = with pkgs; [ bash ];
+              serviceConfig = {
+                ExecStart = "${self.packages.x86_64-linux.default}/bin/srv";
+                Restart = "always";
+                Type = "simple";
+              };
+            };
+          };
         };
       };
     };
