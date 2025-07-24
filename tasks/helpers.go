@@ -14,8 +14,9 @@ import (
 const nixBuildScript = `
 exec 2>&1
 set -xe
-TZ=CET date
+ENTROPY="$(TZ=CET date)"
 cd '%[1]s'
+nix flake update --override-input entropy file+file://<(echo "$ENTROPY")
 nix build --option sandbox false --print-build-logs '%[2]s' --rebuild || \
 nix build --option sandbox false --print-build-logs '%[2]s'
 `

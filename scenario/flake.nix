@@ -1,5 +1,11 @@
 {
-  outputs = { self, nixpkgs, ... }:
+  inputs = {
+    entropy = {
+      url = "file+file:///dev/null";
+      flake = false;
+    };
+  };
+  outputs = { self, nixpkgs, ... }@inputs:
     let
       pkgs = import nixpkgs { system = "x86_64-linux"; };
       addCheck = { name, sylva-core, scenario, ... }: pkgs.testers.runNixOSTest {
@@ -46,6 +52,7 @@
           dontFixup = false;
           buildInputs = with pkgs; [ cacert git ];
           installPhase = ''
+            cat '${inputs.entropy}'
             git clone -b $git_rev $git_url $out/
           '';
           postFixup = ''

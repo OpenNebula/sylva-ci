@@ -21,7 +21,11 @@ apply destroy: init
 run:
 	nix run
 
-.PHONY: check
+.PHONY: touch check
+
+touch:
+	cd $(SELF)/scenario/ && \
+	nix flake update --override-input entropy file+file://<(TZ=CET date)
 
 check:
 	cd $(SELF)/scenario/ && \

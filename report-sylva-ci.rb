@@ -49,7 +49,7 @@ class Gitlab
     end
 end
 
-builds = Dir["/var/tmp/sylva-ci/logs/*/result.json"].each_with_object([]) do |p, acc|
+builds = Dir['/var/tmp/sylva-ci/logs/*/result.json'].each_with_object([]) do |p, acc|
     r = JSON.parse(File.read(p))
 
     next if r['name'].nil?
