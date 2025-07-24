@@ -16,7 +16,7 @@ func enqueue(client *asynq.Client, flakeDir, flakeOut string) {
 	info, err := client.Enqueue(
 		task,
 		asynq.MaxRetry(0),
-		asynq.Timeout(1 * time.Hour),
+		asynq.Timeout(90 * time.Minute),
 		asynq.Retention(7 * 24 * time.Hour),
 	)
 	if err != nil {

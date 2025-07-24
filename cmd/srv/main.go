@@ -21,7 +21,7 @@ func register(sch *asynq.Scheduler, cronSpec, flakeDir, flakeOut string) {
 		cronSpec,
 		task,
 		asynq.MaxRetry(0),
-		asynq.Timeout(1 * time.Hour),
+		asynq.Timeout(90 * time.Minute),
 		asynq.Retention(7 * 24 * time.Hour),
 	); err != nil {
 		log.Fatal(err)
