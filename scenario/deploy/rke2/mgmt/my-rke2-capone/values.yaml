@@ -23,7 +23,7 @@ cluster:
             NETWORK = "YES",
             SET_HOSTNAME = "$NAME",
             SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
-            TOKEN = "YES" ]
+            TOKEN = "NO" ]
           CPU = "1"
           CPU_MODEL = [
             MODEL = "host-passthrough" ]
@@ -55,7 +55,7 @@ cluster:
             NETWORK = "YES",
             SET_HOSTNAME = "$NAME",
             SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
-            TOKEN = "YES" ]
+            TOKEN = "NO" ]
           CPU = "1"
           CPU_MODEL = [
             MODEL = "host-passthrough" ]
