@@ -89,7 +89,7 @@ resource "opennebula_virtual_machine" "sylva-ci" {
   context = {
     SET_HOSTNAME   = "sylva-ci"
     NETWORK        = "YES"
-    TOKEN          = "YES"
+    TOKEN          = "NO"
     SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]"
 
     USER_DATA_ENCODING = "base64"
