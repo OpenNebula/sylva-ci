@@ -36,6 +36,7 @@
         testScript = ''
           m1.wait_for_unit("multi-user.target")
           m1.wait_for_unit("network-online.target")
+          m1.wait_for_unit("docker.service")
           print(m1.succeed("${scenario}/run.sh ${sylva-core}"))
         '';
       };
@@ -43,8 +44,8 @@
       packages.x86_64-linux = {
         default = pkgs.stdenv.mkDerivation {
           name = "sylva-core";
-          git_url = "https://gitlab.com/mopala/sylva-core.git";
-          git_rev = "capone";
+          git_url = "https://gitlab.com/sylva-projects/sylva-core.git";
+          git_rev = "main";
           dontUnpack = true;
           dontPatch = true;
           dontConfigure = true;
