@@ -4,8 +4,8 @@
 
 set -e -o pipefail
 
+# Load context mounted as ISO9660 device
 : "${CONTEXT_PATH:=/dev/sr0}"
-
 source <(isoinfo -i "$CONTEXT_PATH" -R -x /context.sh)
 
 : "${SYLVA_CI_GIT_URL:=$1}"
@@ -13,14 +13,17 @@ source <(isoinfo -i "$CONTEXT_PATH" -R -x /context.sh)
 
 set -u
 
+# Clone Sylva CI repository
 if [[ ! -e /opt/sylva-ci/ ]]; then
     git clone -b "$SYLVA_CI_GIT_REV" "$SYLVA_CI_GIT_URL" /opt/sylva-ci/
 fi
 
+# Hostname configuration
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/01-hostname.nix <<NIX
 { ... }: { networking.hostName = "$SET_HOSTNAME"; }
 NIX
 
+# Nix package manager configuration
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/02-flakes.nix <<NIX
 { pkgs, ... }: {
   nix = {
@@ -45,8 +48,10 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/02-flake
 }
 NIX
 
+# Apply NixOS configuration changes
 nixos-rebuild switch
 
+# Docker registry configuration
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/03-docker.nix <<NIX
 { ... }: {
   services.dockerRegistry = {
@@ -68,6 +73,7 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/03-docke
 }
 NIX
 
+# Sylva CI service configuration from sylva-ci flake (includes Redis configuration)
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/04-services.nix <<NIX
 { pkgs, ... }: {
   imports = [
@@ -90,6 +96,9 @@ install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/04-servi
 }
 NIX
 
+# Sets a timer job to report Sylva CI results on upstream gitlab project
+# each weekday at 5am CET, and deletes the local logs older than 10 days
+# (logs are saved under /var/tmp/sylva-ci/logs/)
 install -o 0 -g 0 -m u=rw,go=r /dev/fd/0 /etc/nixos/configuration.nix.d/05-timers.nix <<NIX
 { pkgs, ... }: {
   environment.systemPackages = with pkgs; [

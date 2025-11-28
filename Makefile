@@ -23,14 +23,17 @@ run:
 
 .PHONY: touch check
 
+# Update the entropy input to force rebuilds
 touch:
 	cd $(SELF)/scenario/ && \
 	nix flake update --override-input entropy file+file://<(TZ=CET date)
 
+# Run all checks in the scenario flake
 check:
 	cd $(SELF)/scenario/ && \
 	nix flake check --option sandbox false --print-build-logs
 
+# Run a specific test scenario in a form of test-<scenario>, e.g., test-deploy-rke2
 define ADD_TEST =
 .PHONY: test-$(1)
 
