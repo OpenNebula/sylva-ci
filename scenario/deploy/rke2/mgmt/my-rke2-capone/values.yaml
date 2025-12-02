@@ -142,15 +142,6 @@ units:
   harbor:
     enabled: false
 
-  cis-operator-crd:
-    enabled: false
-
-  cis-operator:
-    enabled: false
-
-  cis-operator-scan:
-    enabled: false
-
   neuvector-init:
     enabled: false
 
@@ -176,9 +167,6 @@ units:
     enabled: false
 
   metal3:
-    enabled: false
-
-  metal3-pdb:
     enabled: false
 
   capone:
