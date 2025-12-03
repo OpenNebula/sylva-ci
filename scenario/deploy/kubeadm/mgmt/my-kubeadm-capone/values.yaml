@@ -26,7 +26,39 @@ cluster:
             SET_HOSTNAME = "$NAME",
             SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
             TOKEN = "NO" ]
-          CPU = "1"
+          CPU = "2"
+          CPU_MODEL = [
+            MODEL = "host-passthrough" ]
+          DISK = [
+            IMAGE = "capone-kubeadm-mgmt-node",
+            SIZE = "65536" ]
+          GRAPHICS = [
+            LISTEN = "0.0.0.0",
+            TYPE = "vnc" ]
+          HYPERVISOR = "kvm"
+          LXD_SECURITY_PRIVILEGED = "true"
+          MEMORY = "24576"
+          OS = [
+            ARCH = "x86_64",
+            FIRMWARE_SECURE = "YES" ]
+          SCHED_REQUIREMENTS = "HYPERVISOR=kvm"
+          VCPU = "16"
+          SCHED_ACTION = [
+            ACTION = "undeploy",
+            ID     = "0",
+            TIME   = "+7200" ]
+          SCHED_ACTION = [
+            ACTION = "terminate",
+            ID     = "1",
+            TIME   = "+57600" ]
+      - templateName: capone-kubeadm-mgmt-worker
+        templateContent: |
+          CONTEXT = [
+            NETWORK = "YES",
+            SET_HOSTNAME = "$NAME",
+            SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
+            TOKEN = "NO" ]
+          CPU = "2"
           CPU_MODEL = [
             MODEL = "host-passthrough" ]
           DISK = [
@@ -43,38 +75,6 @@ cluster:
             FIRMWARE_SECURE = "YES" ]
           SCHED_REQUIREMENTS = "HYPERVISOR=kvm"
           VCPU = "8"
-          SCHED_ACTION = [
-            ACTION = "undeploy",
-            ID     = "0",
-            TIME   = "+7200" ]
-          SCHED_ACTION = [
-            ACTION = "terminate",
-            ID     = "1",
-            TIME   = "+57600" ]
-      - templateName: capone-kubeadm-mgmt-worker
-        templateContent: |
-          CONTEXT = [
-            NETWORK = "YES",
-            SET_HOSTNAME = "$NAME",
-            SSH_PUBLIC_KEY = "$USER[SSH_PUBLIC_KEY]",
-            TOKEN = "NO" ]
-          CPU = "1"
-          CPU_MODEL = [
-            MODEL = "host-passthrough" ]
-          DISK = [
-            IMAGE = "capone-kubeadm-mgmt-node",
-            SIZE = "65536" ]
-          GRAPHICS = [
-            LISTEN = "0.0.0.0",
-            TYPE = "vnc" ]
-          HYPERVISOR = "kvm"
-          LXD_SECURITY_PRIVILEGED = "true"
-          MEMORY = "6144"
-          OS = [
-            ARCH = "x86_64",
-            FIRMWARE_SECURE = "YES" ]
-          SCHED_REQUIREMENTS = "HYPERVISOR=kvm"
-          VCPU = "4"
           SCHED_ACTION = [
             ACTION = "undeploy",
             ID     = "0",
